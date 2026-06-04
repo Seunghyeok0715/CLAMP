@@ -165,12 +165,13 @@ This implementation builds upon:
 ## Citation
 
 ```bibtex
-@inproceedings{
-shin2026clamp,
-title={Geometry-Correct Diffusion Posterior Sampling with Denoiser-Pullback Curvature Guidance and Manifold-Aligned Damping},
-author={Seunghyeok Shin and Minwoo Kim and Dabin Kim and Hongki Lim},
-booktitle={Forty-Third International Conference on Machine Learning},
-year={2026},
-url={https://openreview.net/forum?id=x9Cy1wydfo}
+@inproceedings{shin2026clamp,
+  author    = {Seunghyeok Shin and Minwoo Kim and Dabin Kim and Hongki Lim},
+  title     = {Geometry-Correct Diffusion Posterior Sampling with Denoiser-Pullback Curvature Guidance and Manifold-Aligned Damping},
+  booktitle = {Proceedings of the 43rd International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {306},
+  year      = {2026},
+  publisher = {PMLR}
 }
 ```
