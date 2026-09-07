@@ -39,9 +39,9 @@ python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256l
 
 python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task inpainting --name latent_inp_box --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
 
-python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task inpainting_rand --name latent inp_rand --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
+python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task inpainting_rand --name latent_inp_rand --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
 
-python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task gaussian_blur --name latenet_gb --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
+python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task gaussian_blur --name latent_gb --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
 
 python main.py --method clamp --task_group ldm --data test-ffhq --model ffhq256ldm --sampler latent_edm_daps --batch_size 1 --task motion_blur --name latent_mb --anneal_num_steps 25 --clamp_gmres_iter 20 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01
 

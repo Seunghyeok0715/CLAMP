@@ -1,168 +1,102 @@
-<div align="center">
+# CLAMP: Training-free diffusion inverse solver
 
-# Geometry-Correct Diffusion Posterior Sampling with Denoiser-Pullback Curvature Guidance and Manifold-Aligned Damping (ICML 2026)
-[![arXiv](https://img.shields.io/badge/arXiv-b31b1b.svg)](https://arxiv.org/abs/2605.27990) [![OpenReview](https://img.shields.io/badge/OpenReview-Paper-4b44ce.svg)](https://openreview.net/forum?id=x9Cy1wydfo) [![ICML 2026](https://img.shields.io/badge/ICML-2026-4b6bfb.svg)](https://icml.cc/virtual/2026/poster/60728) 
-<!-- [![project](https://img.shields.io/badge/project-blue.svg)](https://clamp2026.github.io/) -->
+**ICML 2026**
 
-</div>
+**Geometry-Correct Diffusion Posterior Sampling with Denoiser-Pullback Curvature Guidance and Manifold-Aligned Damping**
 
-## Table of Contents
+Seunghyeok Shin · Minwoo Kim · Dabin Kim · Hongki Lim
+Inha University
 
-- [Overview](#overview)
-  - [Abstract](#abstract)
-  - [Method](#method)
-- [Running the Code](#running-the-code)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
-- [Acknowledgement](#acknowledgement)
-- [Citation](#citation)
+[![arXiv](https://img.shields.io/badge/arXiv-2605.27990-b31b1b.svg)](https://arxiv.org/abs/2605.27990)
+[![OpenReview](https://img.shields.io/badge/OpenReview-Paper-4b44ce.svg)](https://openreview.net/forum?id=x9Cy1wydfo)
+[![ICML 2026](https://img.shields.io/badge/ICML-2026-4b6bfb.svg)](https://icml.cc/virtual/2026/poster/60728)
 
-## Overview
+CLAMP (**Curvature-aware Langevin with Aligned Manifold Pullback**) reconstructs images from measurements using a pretrained diffusion prior, without training a task-specific solver. It replaces scalar likelihood guidance with denoiser-pullback curvature correction, manifold-aligned damping, and a matrix-free GMRES solve. Consider CLAMP as a baseline when comparing reconstruction quality and runtime for diffusion-prior inverse problems.
 
-### Abstract
-![abstract](assets/figure1.jpg)
-Diffusion posterior sampling conditions diffusion priors on measurements, but data-consistency updates are typically scaled by hand-tuned guidance weights and can destabilize sampling under stiff, operator-dependent curvature. We replace scalar guidance with a per-noise-level damped Gauss--Newton correction computed in diffusion-state coordinates. The correction pulls likelihood gradients back through the denoiser, uses a one-sided curvature model that avoids forward denoiser Jacobians, and applies diffusion-calibrated rank-one damping aligned with the denoiser residual. Each correction is solved with matrix-free GMRES using automatic differentiation, and sampling proceeds with a variance-preserving Langevin transition with a closed-form drift/noise split. On FFHQ and ImageNet across inverse problems, it achieves competitive PSNR/SSIM/LPIPS while running markedly faster than most of the compared baselines; on accelerated MRI reconstruction, it achieves the best PSNR/SSIM among the compared baselines.
+[Setup and first reconstruction](#installation) · [Checkpoints and datasets](docs/assets.md) · [Results and comparison](docs/results.md) · [Reproduction guide](docs/reproduction.md) · [Citation](#citation)
 
-### Method
-![method](assets/figure2.jpg)
-Overview of our CLAMP-guided diffusion posterior sampling framework. CLAMP replaces hand-tuned scalar likelihood guidance with a denoiser-pullback, curvature-aware damped Gauss–Newton correction that adaptively scales data-consistency updates at each noise level. Combined with manifold-aligned damping, matrix-free GMRES, and variance-preserving Langevin propagation, this principled update enables stable, high-fidelity reconstruction that remains consistent with the input measurements.
+## Applicability and public implementation
 
-## Running the Code
+| Component | Public code and presets |
+| --- | --- |
+| Images | FFHQ and ImageNet, 256 × 256 RGB |
+| Pixel prior | DDPM, `--task_group pixel`, `--sampler edm_daps` |
+| Latent prior | LDM, `--task_group ldm`, `--sampler latent_edm_daps`; additional dependencies required |
+| Linear tasks | `down_sampling` (4×), `inpainting`, `inpainting_rand`, `gaussian_blur`, `motion_blur` |
+| Nonlinear tasks | `phase_retrieval`, `nonlinear_blur`, `hdr` |
+| Hardware | CUDA-enabled NVIDIA GPU; the main entry point requires CUDA |
+| Additional assets | Pretrained prior and input images; nonlinear blur also needs the BKSE checkpoint |
 
-### Installation
+A custom operator must provide the Jacobian actions required by `torch.func` (the default path uses automatic differentiation). Latent reconstruction also differentiates through the decoder. Training-free refers to the inverse solver; pretrained priors are still required.
 
-1. Create and activate the conda environment:
+**Paper scope versus release scope:** the paper also reports accelerated MRI and higher-resolution experiments. This repository does not supply a complete MRI dataset/prior/reconstruction recipe. Stable Diffusion wrappers are present, but are outside the documented 256 × 256 benchmark path. Availability of a preset does not mean that it has been independently reproduced; see the [validation status](docs/reproduction.md).
 
-Required versions:
+## Method
 
-- Python: `3.10`
-- PyTorch: `2.3.0`
-- CUDA: `12.1`
+![CLAMP reconstructions on the inverse problems evaluated in the paper](assets/figure1.jpg)
 
-```bash
-conda create -n fastdips python=3.10 -y
-conda activate fastdips
-pip install -r requirements.txt
-```
+![Denoiser pullback, curvature correction, and diffusion transition in CLAMP](assets/figure2.jpg)
 
-2. Checkpoints:
+At each noise level, CLAMP maps measurement sensitivity through the denoiser into the diffusion state. A one-sided curvature approximation and aligned rank-one damping define a correction solved with GMRES. A variance-preserving stochastic transition advances the noise schedule. In latent space, the measurement operator is composed with the decoder. See the [paper](https://arxiv.org/abs/2605.27990) for the derivation and assumptions.
 
-Create the checkpoint directory:
+## Installation
+
+Run commands from the repository root. The validated quick-start stack is Python 3.11.9, PyTorch 2.3.0, torchvision 0.18.0, and CUDA 12.1 wheels. Install PyTorch from its explicit CUDA index before the remaining dependencies ([official wheel instructions](https://pytorch.org/get-started/previous-versions/#v230)).
 
 ```bash
-# in FAST-DIPS folder
-mkdir -p checkpoints
+git clone https://github.com/Seunghyeok0715/CLAMP.git
+cd CLAMP
+conda create -n clamp python=3.11.9 -y
+conda activate clamp
+python -m pip install torch==2.3.0 torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cu121
+python -m pip install -r requirements.txt
+python -m pip check
+python main.py --help
 ```
 
-Required files (`./checkpoints`):
+`requirements.txt` covers the pixel-space path, evaluation, and download tools. The embedded LDM code additionally depends on legacy PyTorch Lightning, OmegaConf, einops, kornia, and CLIP; see [latent setup status](docs/reproduction.md#latent-and-mri-status) before using latent presets.
 
-- `ffhq256.pt` (DDPM)
-- `imagenet256.pt` (DDPM)
-- `ldm_ffhq256.pt` (LDM)
-- `ldm_imagenet256.pt` (LDM)
-- `GOPRO_wVAE.pth` (nonlinear blur)
+### Quick start: one FFHQ image, 4× super-resolution
 
-Download checkpoints:
-
-- FFHQ DDPM:
+Download the [FFHQ DDPM checkpoint and FFHQ test archive](docs/assets.md). The expected paths are `checkpoints/ffhq256.pt` and `dataset/test-ffhq/`. The singular directory name `dataset` matches the code presets. If your extracted archive has another layout, override `--data_root`.
 
 ```bash
-gdown https://drive.google.com/uc?id=1BGwhRWUoguF-D8wlZ65tf227gp3cDUDh -O checkpoints/ffhq256.pt
+python scripts/check_setup.py --checkpoint checkpoints/ffhq256.pt --data-root dataset/test-ffhq
+python main.py --method clamp --task_group pixel --data test-ffhq --data_root dataset/test-ffhq --data_start_id 0 --data_end_id 1 --model ffhq256ddpm --sampler edm_daps --batch_size 1 --task down_sampling --name ffhq_sr4_smoke --anneal_num_steps 50 --clamp_gmres_iter 5 --clamp_lambda_id 2.0 --clamp_sigma_n 0.01 --operator_sigma 0.05 --seed 42 --save_traj false --eval_fn_list psnr,ssim --cudnn false
 ```
 
-- ImageNet DDPM:
+The first-run command sets `--cudnn false`, a native CUDA convolution fallback validated on Windows/RTX 4090. It still runs on the GPU. The default is `--cudnn true`; keep the backend setting in performance reports and validate it on your hardware.
 
-```bash
-gdown https://drive.google.com/uc?id=1HAy7P19PckQLczVNXmVF-e_CRxq098uW -O checkpoints/imagenet256.pt
-```
+This first run uses PSNR/SSIM to avoid downloading LPIPS's VGG weights. Add `--eval_fn_list psnr,ssim,lpips` for the benchmark metrics; LPIPS downloads its pretrained backbone on first use. Weights & Biases logging is disabled by default.
 
-- FFHQ LDM:
+Expected files under `results/ffhq_sr4_smoke/`:
 
-```bash
-wget https://ommer-lab.com/files/latent-diffusion/ffhq.zip -P ./checkpoints
-unzip checkpoints/ffhq.zip -d ./checkpoints
-mv checkpoints/model.ckpt checkpoints/ldm_ffhq256.pt
-rm checkpoints/ffhq.zip
-```
+| File | Contents |
+| --- | --- |
+| `samples/00000_run0000.png` | Reconstructed RGB image |
+| `grid_results.png` | Ground truth, visualized measurement, and reconstruction |
+| `config.yaml` | Resolved data, operator, prior, sampler, and CLI configuration |
+| `eval.md`, `metrics.json` | Reconstruction metrics and recorded sampling statistics |
 
-- ImageNet LDM:
+Use a fresh `--name` for each experiment because matching output names overwrite files. A successful one-image run checks installation and execution; it does not reproduce a 100-image paper average.
 
-```bash
-wget https://ommer-lab.com/files/latent-diffusion/nitro/cin/model.ckpt -P ./checkpoints/
-mv checkpoints/model.ckpt checkpoints/ldm_imagenet256.pt
-```
+### Benchmark commands
 
-- Nonlinear blur:
+[configs_clamp_cli.txt](configs_clamp_cli.txt) contains the task commands and solver budgets. For ImageNet, replace `test-ffhq` with `test-imagenet` and `ffhq256ddpm` with `imagenet256ddpm` (or `ffhq256ldm` with `imagenet256ldm`). Update `--data_root` when it is supplied explicitly.
 
-```bash
-gdown https://drive.google.com/uc?id=1vRoDpIsrTRYZKsOMPNbPcMtFDpCT6Foy -O checkpoints/GOPRO_wVAE.pth
-```
+`--operator_sigma` controls the physical noise added to measurements. `--clamp_sigma_n` controls the solver's data-consistency calibration; these are different parameters. Keep both in any reported experiment configuration.
 
-3. Datasets:
+## Evidence and limitations
 
-Create the dataset directory:
-
-```bash
-# in FAST-DIPS folder
-mkdir -p datasets
-```
-
-Download datasets:
-
-- FFHQ:
-
-```bash
-gdown https://drive.google.com/uc?id=1i0oI8nt_b9XCHNPKM5KR92Y4t8ZVMDvR -O datasets/test-ffhq.zip
-unzip datasets/test-ffhq.zip -d ./datasets
-rm datasets/test-ffhq.zip
-```
-
-- ImageNet:
-
-```bash
-gdown https://drive.google.com/uc?id=1ezXMhLt2UPaqNJnYNQAFM9ZLUW52ulz5 -O datasets/test-imagenet.zip
-unzip datasets/test-imagenet.zip -d ./datasets
-rm datasets/test-imagenet.zip
-```
-
-### Quick Start
-
-Predefined CLI command sets:
-
-- `configs_clamp_cli.txt`
-
-Supported tasks:
-
-- `down_sampling`
-- `inpainting`
-- `inpainting_rand`
-- `gaussian_blur`
-- `motion_blur`
-- `phase_retrieval`
-- `nonlinear_blur`
-- `hdr`
-
-Supported spaces: `pixel`, `latent`
-
-Supported datasets: `FFHQ (256 x 256)`, `ImageNet (256 x 256)`
-
-To run ImageNet experiments, replace the dataset/model preset in the FFHQ commands:
-
-- Pixel-space DDPM: `--data test-ffhq --model ffhq256ddpm`
-  -> `--data test-imagenet --model imagenet256ddpm`
-
-- Latent-space LDM: `--data test-ffhq --model ffhq256ldm`
-  -> `--data test-imagenet --model imagenet256ldm`
+The [results guide](docs/results.md) provides readable quality/runtime comparisons with links to the source paper. Results are labeled as **author-reported in the paper**, separately from local execution checks. There is no claim of universal superiority: the appropriate baseline depends on the task, prior, metrics, and compute budget.
 
 ## Acknowledgements
 
-This implementation builds upon:
-
-- [DAPS](https://github.com/zhangbingliang2019/DAPS)
-- Nonlinear blur operator from [BKSE](https://github.com/VinAIResearch/blur-kernel-space-exploring)
-- Motion blur operator from [motionblur](https://github.com/LeviBorodenko/motionblur)
+This implementation builds upon [DAPS](https://github.com/zhangbingliang2019/DAPS), the nonlinear blur operator from [BKSE](https://github.com/VinAIResearch/blur-kernel-space-exploring), and the motion blur operator from [motionblur](https://github.com/LeviBorodenko/motionblur). Existing third-party notices and licenses are retained.
 
 ## Citation
+
+Please cite the **ICML 2026 conference paper** below. GitHub's **Cite this repository** uses the same preferred paper citation from [CITATION.cff](CITATION.cff).
 
 ```bibtex
 @inproceedings{shin2026clamp,
@@ -172,6 +106,7 @@ This implementation builds upon:
   series    = {Proceedings of Machine Learning Research},
   volume    = {306},
   year      = {2026},
-  publisher = {PMLR}
+  publisher = {PMLR},
+  url       = {https://icml.cc/virtual/2026/poster/60728}
 }
 ```

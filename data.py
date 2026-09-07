@@ -64,12 +64,16 @@ class ImageDataset(DiffusionData):
 
     def __init__(self, root='dataset/demo', resolution=256, device='cuda', start_id=None, end_id=None):
         # Define the file extensions to search for
-        extensions = ['*.jpg', '*.JPG', '*.jpeg', '*.JPEG', '*.png', '*.PNG']
-        self.data = [file for ext in extensions for file in Path(root).rglob(ext)]
+        extensions = {'.jpg', '.jpeg', '.png'}
+        self.data = [file for file in Path(root).rglob('*')
+                     if file.is_file() and file.suffix.lower() in extensions]
         self.data = sorted(self.data)
 
         # Subset the dataset
         self.data = self.data[start_id: end_id]
+        if not self.data:
+            raise ValueError(f'No images found in {Path(root).resolve()} for slice '
+                             f'[{start_id}:{end_id}]. Check --data_root and the extracted dataset layout.')
         self.trans = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(resolution),
@@ -79,9 +83,8 @@ class ImageDataset(DiffusionData):
         self.device = device
 
     def __getitem__(self, i):
-        img = (self.trans(Image.open(self.data[i])) * 2 - 1).to(self.device)
-        if img.shape[0] == 1:
-            img = torch.cat([img] * 3, dim=0)
+        with Image.open(self.data[i]) as image:
+            img = (self.trans(image.convert('RGB')) * 2 - 1).to(self.device)
         return img
     def get_shape(self):
         return (3, self.res, self.res)

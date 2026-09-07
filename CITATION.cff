@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use CLAMP, please cite the ICML 2026 paper listed below."
+title: "CLAMP: Training-Free Diffusion Inverse Solver"
+type: software
+version: 0.1.0
+authors:
+  - family-names: Shin
+    given-names: Seunghyeok
+  - family-names: Kim
+    given-names: Minwoo
+  - family-names: Kim
+    given-names: Dabin
+  - family-names: Lim
+    given-names: Hongki
+repository-code: "https://github.com/Seunghyeok0715/CLAMP"
+url: "https://github.com/Seunghyeok0715/CLAMP"
+license: MIT
+keywords:
+  - inverse problems
+  - diffusion posterior sampling
+  - training-free reconstruction
+  - denoiser-pullback curvature
+  - manifold-aligned damping
+preferred-citation:
+  type: conference-paper
+  title: "Geometry-Correct Diffusion Posterior Sampling with Denoiser-Pullback Curvature Guidance and Manifold-Aligned Damping"
+  authors:
+    - family-names: Shin
+      given-names: Seunghyeok
+    - family-names: Kim
+      given-names: Minwoo
+    - family-names: Kim
+      given-names: Dabin
+    - family-names: Lim
+      given-names: Hongki
+  conference:
+    name: "International Conference on Machine Learning (ICML 2026)"
+  collection-title: "Proceedings of the 43rd International Conference on Machine Learning"
+  collection-type: proceedings
+  volume: 306
+  publisher:
+    name: PMLR
+  year: 2026
+  url: "https://icml.cc/virtual/2026/poster/60728"

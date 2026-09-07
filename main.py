@@ -545,6 +545,8 @@ def parse_args() -> argparse.Namespace:
 
     # General
     p.add_argument("--gpu", type=int, default=0)
+    p.add_argument("--cudnn", type=_str2bool, default=True,
+                   help="Use cuDNN; set false for native CUDA convolutions when cuDNN backward stalls.")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--name", type=str, default="demo")
     p.add_argument("--save_dir", type=str, default="./results")
@@ -828,6 +830,7 @@ def main():
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.enabled = args.cudnn
     torch.cuda.set_device(f"cuda:{args.gpu}")
 
     setproctitle.setproctitle(args.name)
@@ -869,7 +872,9 @@ def main():
     name = model_kwargs.pop("name")
     model = get_model(name=name, **model_kwargs, device=f"cuda:{args.gpu}")
     if str(args.method).lower().strip() == "clamp":
-        model.requires_grad_(True)
+        # torch.func differentiates the explicitly supplied diffusion state.
+        # Frozen pretrained weights avoid retaining parameter-gradient graphs.
+        model.requires_grad_(False)
         using_torch_func = _HAS_TORCH_FUNC and (_func_vjp is not None and _func_jvp is not None)
         if using_torch_func:
             # Disable embedded checkpoint wrappers for CLAMP+torch.func to avoid recompute overhead.

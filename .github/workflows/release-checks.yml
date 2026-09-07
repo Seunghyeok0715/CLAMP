@@ -1,0 +1,27 @@
+name: Release checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpu-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+          cache: pip
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install torch==2.3.0 torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements.txt
+          python -m pip check
+      - name: Check imports and command-line entry point
+        run: |
+          python scripts/check_setup.py --imports-only
+          python main.py --help
+      - name: Check data loading and published recipes
+        run: python -m unittest discover -s tests -v
